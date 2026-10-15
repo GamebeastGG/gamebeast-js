@@ -1,6 +1,6 @@
 {
   "name": "@gamebeast/core",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Internal building block shared by @gamebeast/js and @gamebeast/node. Install one of those instead.",
   "keywords": [
     "gamebeast"
