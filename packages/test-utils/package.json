@@ -11,6 +11,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@gamebeast/core": "1.0.0"
+    "@gamebeast/core": "1.1.0"
   }
 }
