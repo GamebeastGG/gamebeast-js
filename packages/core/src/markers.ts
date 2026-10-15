@@ -1,3 +1,4 @@
+import type { DeeplinkData, UtmParameters } from "./attribution";
 import type { Logger } from "./logger";
 import { describeError } from "./logger";
 import { uuidv4 } from "./uuid";
@@ -11,6 +12,10 @@ export interface MarkerFields {
   sessionId?: string | undefined;
   /** Epoch milliseconds or a `Date`. Defaults to now. */
   timestamp?: number | Date | undefined;
+  /** Deeplink attribution. Reserved: sent beside `properties`, never inside them. */
+  deeplinkData?: DeeplinkData | undefined;
+  /** UTM attribution. Reserved: sent beside `properties`, never inside them. */
+  utm?: UtmParameters | undefined;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -77,5 +82,8 @@ export function buildMarker(
     marker.distinctId = fields.distinctId;
   if (fields.sessionId !== undefined && fields.sessionId !== "")
     marker.sessionId = fields.sessionId;
+  if (fields.deeplinkData !== undefined) marker.deeplinkData = { ...fields.deeplinkData };
+  if (fields.utm !== undefined && Object.keys(fields.utm).length > 0)
+    marker.utm = { ...fields.utm };
   return marker;
 }

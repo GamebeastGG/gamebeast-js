@@ -43,7 +43,7 @@
     "check:package": "publint && attw --pack . --profile node16"
   },
   "dependencies": {
-    "@gamebeast/sdk-contract": "^1.0.0"
+    "@gamebeast/sdk-contract": "^1.1.0"
   },
   "publishConfig": {
     "access": "public",
