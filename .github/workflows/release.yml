@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: npm-publish
+    permissions:
+      contents: write # push the version commit and tags
+      pull-requests: write # open the "Version packages" PR
+      id-token: write # npm trusted publishing + provenance
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # npm >= 11.5 (bundled with Node 24) is required for npm trusted publishing.
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          cache: npm
+
+      - run: npm ci
+
+      # With pending changesets this opens/updates the "Version packages" PR. Once that PR is merged
+      # (no changesets left), it runs `npm run release`: every check, then `changeset publish`,
+      # which publishes each package whose version is not on npm yet and tags the release.
+      - uses: changesets/action@v1
+        with:
+          version: npm run version-packages
+          publish: npm run release
+          title: "chore: version packages"
+          commit: "chore: version packages"
+          createGithubReleases: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"

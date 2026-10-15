@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Platform-neutral: the shared code may use only what both browsers and Node provide. DOM is the
+  // library that declares `fetch`, `AbortController` and `crypto`; Node-only APIs are not in scope.
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM"]
+  },
+  "include": ["src", "test"]
+}

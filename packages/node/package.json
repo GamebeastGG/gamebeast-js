@@ -1,0 +1,63 @@
+{
+  "name": "@gamebeast/node",
+  "version": "1.0.0",
+  "description": "Gamebeast SDK for Node.js and other server runtimes: remote configuration, per-user evaluation, experiments, cohorts and analytics markers.",
+  "keywords": [
+    "gamebeast",
+    "analytics",
+    "remote-config",
+    "ab-testing",
+    "experiments",
+    "liveops",
+    "node",
+    "server"
+  ],
+  "homepage": "https://docs.gamebeast.gg",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GamebeastGG/gamebeast-js.git",
+    "directory": "packages/node"
+  },
+  "bugs": {
+    "url": "https://github.com/GamebeastGG/gamebeast-js/issues"
+  },
+  "author": "Gamebeast, Inc. <support@gamebeast.gg>",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsup",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "check:package": "publint && attw --pack . --profile node16"
+  },
+  "dependencies": {
+    "@gamebeast/core": "1.0.0",
+    "@gamebeast/sdk-contract": "^1.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

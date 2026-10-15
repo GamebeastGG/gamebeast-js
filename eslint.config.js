@@ -2,7 +2,7 @@ import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "node_modules", "coverage"] },
+  { ignores: ["**/dist", "**/node_modules", "**/coverage"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -13,8 +13,8 @@ export default tseslint.config(
     },
   },
   {
-    // Type-aware rules: every TypeScript file is part of tsconfig.json.
-    files: ["**/*.ts"],
+    // Type-aware rules for package sources and tests: each package's tsconfig.json covers them.
+    files: ["packages/*/src/**/*.ts", "packages/*/test/**/*.ts"],
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -27,12 +27,12 @@ export default tseslint.config(
   },
   {
     // The logger is the one place allowed to write to the console.
-    files: ["src/shared/logger.ts"],
+    files: ["packages/core/src/logger.ts"],
     rules: { "no-console": "off" },
   },
   {
     // Build/CI scripts run on Node and report through the console.
-    files: ["scripts/**/*.mjs"],
+    files: ["packages/*/scripts/**/*.mjs", "scripts/**/*.mjs"],
     languageOptions: { globals: { console: "readonly", process: "readonly" } },
     rules: { "no-console": "off" },
   }
