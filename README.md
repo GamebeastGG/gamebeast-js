@@ -70,3 +70,7 @@ are a `fixed` group, so they always share one version.
 2. On merge to `main`, the Release workflow (`.github/workflows/release.yml`) opens or updates a
    "Version packages" PR.
 3. Merging that PR runs every check and publishes the changed packages to npm with provenance.
+
+Publishing uses npm trusted publishing, so there is no npm token. See
+[docs/RELEASING.md](docs/RELEASING.md) for the full CI/CD setup: the npm and GitHub configuration,
+updating the API contract, adding a new package, and troubleshooting a failed release.

@@ -8,4 +8,4 @@ The three packages are a `fixed` group: they always release together with the sa
 `@gamebeast/js` / `@gamebeast/node` pin `@gamebeast/core` to that exact version.
 
 On merge to `main`, the release workflow opens (or updates) a "Version packages" PR. Merging that
-PR publishes to npm.
+PR publishes to npm. See [docs/RELEASING.md](../docs/RELEASING.md) for the full process.
