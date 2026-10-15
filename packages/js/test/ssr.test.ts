@@ -37,6 +37,15 @@ describe("GamebeastClient during server-side rendering", () => {
     expect(backend.requests).toHaveLength(0);
   });
 
+  it("skips attribution capture, even with a landing URL in scope", async () => {
+    vi.stubGlobal("location", { href: "https://example.com/?utm_id=gb_abc" });
+    const { client, backend } = create();
+    client.captureAttribution("https://example.com/?utm_id=gb_abc");
+    expect(client.attribution).toBeUndefined();
+    await client.shutdown();
+    expect(backend.requests).toHaveLength(0);
+  });
+
   it("treats a browser worker (importScripts defined) as a real client", async () => {
     vi.stubGlobal("importScripts", () => undefined);
     const { client, backend } = create();

@@ -349,6 +349,162 @@ describe("GamebeastClient markers", () => {
   });
 });
 
+describe("GamebeastClient deeplink attribution", () => {
+  const LANDING =
+    "https://example.com/pricing?plan=pro&utm_source=twitter&utm_medium=social&utm_id=gb_summer-mfz3k0q7";
+
+  function setUrl(url: string) {
+    window.history.replaceState(null, "", url.replace(/^https:\/\/example\.com/, ""));
+  }
+
+  function sentMarkers(backend: FakeBackend): Array<Record<string, unknown>> {
+    return backend
+      .requestsTo("POST /sdk/v1/markers")
+      .flatMap((request) => (request.body as { markers: Array<Record<string, unknown>> }).markers);
+  }
+
+  function markerBackend() {
+    return new FakeBackend().on("POST /sdk/v1/markers", { body: {} });
+  }
+
+  beforeEach(() => {
+    setUrl("https://example.com/");
+  });
+
+  it("captures the landing URL, records $deeplink_landing and stamps every marker", async () => {
+    setUrl(LANDING);
+    const backend = markerBackend();
+    const { client } = createClient(backend, { distinctId: "alice" });
+    client.markers.send("signup", { plan: "pro" });
+    await client.flush();
+
+    const attribution = client.attribution;
+    expect(attribution).toMatchObject({
+      utm: { source: "twitter", medium: "social", id: "gb_summer-mfz3k0q7" },
+      deeplinkData: { slug: "summer-mfz3k0q7" },
+      landingUrl: `${window.location.origin}/pricing?plan=pro`,
+    });
+
+    const markers = sentMarkers(backend);
+    expect(markers.map((marker) => marker.eventName)).toEqual(["$deeplink_landing", "signup"]);
+    for (const marker of markers) {
+      expect(marker.deeplinkData).toEqual(attribution?.deeplinkData);
+      expect(marker.utm).toEqual(attribution?.utm);
+      expect(marker.sessionId).toBe(client.sessionId);
+    }
+    expect(markers[0]?.properties).toEqual({ landingUrl: attribution?.landingUrl });
+    expect(markers[1]?.properties).toEqual({ plan: "pro" });
+  });
+
+  it("keeps first touch: a later deeplink in the same session is ignored", async () => {
+    setUrl(LANDING);
+    const backend = markerBackend();
+    const { client } = createClient(backend);
+    const first = client.attribution;
+
+    client.captureAttribution("https://example.com/?utm_id=gb_other&utm_source=youtube");
+    client.markers.send("e");
+    await client.flush();
+
+    expect(client.attribution).toEqual(first);
+    const markers = sentMarkers(backend);
+    expect(markers.filter((marker) => marker.eventName === "$deeplink_landing")).toHaveLength(1);
+    expect(markers.at(-1)?.deeplinkData).toEqual(first?.deeplinkData);
+  });
+
+  it("shares attribution with other tabs through the stored session", async () => {
+    setUrl(LANDING);
+    const landing = createClient(markerBackend()).client;
+
+    setUrl("https://example.com/docs");
+    const backend = markerBackend();
+    const { client: otherTab } = createClient(backend);
+    otherTab.markers.send("docs_viewed");
+    await otherTab.flush();
+
+    expect(otherTab.sessionId).toBe(landing.sessionId);
+    expect(otherTab.attribution).toEqual(landing.attribution);
+    const markers = sentMarkers(backend);
+    expect(markers.map((marker) => marker.eventName)).toEqual(["docs_viewed"]);
+    expect(markers[0]?.deeplinkData).toEqual(landing.attribution?.deeplinkData);
+  });
+
+  it("clears attribution when the session times out", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-15T12:00:00Z"));
+    setUrl(LANDING);
+    const backend = markerBackend();
+    const { client } = createClient(backend, { sessionTimeoutMinutes: 30 });
+    const firstSession = client.sessionId;
+    expect(client.attribution?.deeplinkData).toBeDefined();
+
+    vi.setSystemTime(new Date("2026-10-15T12:31:00Z"));
+    expect(client.attribution).toBeUndefined();
+    client.markers.send("later");
+    await client.flush();
+
+    const later = sentMarkers(backend).at(-1);
+    expect(later?.eventName).toBe("later");
+    expect(later?.sessionId).not.toBe(firstSession);
+    expect(later).not.toHaveProperty("deeplinkData");
+    expect(later).not.toHaveProperty("utm");
+  });
+
+  it("attributes plain UTM traffic without recording a landing marker", async () => {
+    setUrl("https://example.com/?utm_source=newsletter&utm_campaign=fall");
+    const backend = markerBackend();
+    const { client } = createClient(backend);
+    client.markers.send("e");
+    await client.flush();
+
+    const markers = sentMarkers(backend);
+    expect(markers.map((marker) => marker.eventName)).toEqual(["e"]);
+    expect(markers[0]?.utm).toEqual({ source: "newsletter", campaign: "fall" });
+    expect(markers[0]).not.toHaveProperty("deeplinkData");
+  });
+
+  it("does nothing for ordinary visits", async () => {
+    const backend = markerBackend();
+    const { client } = createClient(backend);
+    client.markers.send("e");
+    await client.flush();
+    expect(client.attribution).toBeUndefined();
+    expect(sentMarkers(backend)[0]).not.toHaveProperty("deeplinkData");
+  });
+
+  it("can be turned off and captured manually, e.g. after a client-side route change", async () => {
+    setUrl(LANDING);
+    const backend = markerBackend();
+    const { client } = createClient(backend, { captureAttribution: false });
+    expect(client.attribution).toBeUndefined();
+
+    client.captureAttribution("https://example.com/app?utm_id=gb_spa-link");
+    await client.flush();
+    expect(client.attribution?.deeplinkData?.slug).toBe("spa-link");
+    expect(sentMarkers(backend).map((marker) => marker.eventName)).toEqual(["$deeplink_landing"]);
+  });
+
+  it("strips utm_* from the address bar when asked", () => {
+    setUrl(LANDING);
+    createClient(markerBackend(), { stripAttributionParams: true });
+    expect(window.location.search).toBe("?plan=pro");
+  });
+
+  it("leaves the address bar alone by default", () => {
+    setUrl(LANDING);
+    createClient(markerBackend());
+    expect(window.location.search).toContain("utm_id=gb_summer-mfz3k0q7");
+  });
+
+  it("returns a copy of the attribution", () => {
+    setUrl(LANDING);
+    const { client } = createClient(markerBackend());
+    const attribution = client.attribution!;
+    attribution.utm!.source = "changed";
+    expect(client.attribution?.utm?.source).toBe("twitter");
+  });
+});
+
 describe("GamebeastClient experiments and cohorts", () => {
   it("reports assignments from evaluated responses, enriched with catalog names", async () => {
     const backend = new FakeBackend()
