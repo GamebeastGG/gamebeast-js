@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Server package: Node types (which declare `fetch` and friends), no DOM.
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["src", "test"]
+}

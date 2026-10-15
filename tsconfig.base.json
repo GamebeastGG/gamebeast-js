@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": [],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": false,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "resolveJsonModule": true,
+    // Workspace packages resolve to their sources, so typechecking and tests never need a build.
+    // Published builds resolve `@gamebeast/core` from node_modules like any other dependency.
+    "paths": {
+      "@gamebeast/core": ["./packages/core/src/index.ts"],
+      "@gamebeast/test-utils": ["./packages/test-utils/src/index.ts"]
+    }
+  }
+}

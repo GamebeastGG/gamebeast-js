@@ -1,0 +1,16 @@
+{
+  "name": "@gamebeast/test-utils",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Test helpers (a scriptable fake Gamebeast API) shared by the SDK packages' tests. Never published.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@gamebeast/core": "1.0.0"
+  }
+}

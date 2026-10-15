@@ -1,0 +1,52 @@
+{
+  "name": "@gamebeast/core",
+  "version": "1.0.0",
+  "description": "Internal building block shared by @gamebeast/js and @gamebeast/node. Install one of those instead.",
+  "keywords": [
+    "gamebeast"
+  ],
+  "homepage": "https://docs.gamebeast.gg",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GamebeastGG/gamebeast-js.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/GamebeastGG/gamebeast-js/issues"
+  },
+  "author": "Gamebeast, Inc. <support@gamebeast.gg>",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsup",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "check:package": "publint && attw --pack . --profile node16"
+  },
+  "dependencies": {
+    "@gamebeast/sdk-contract": "^1.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}
