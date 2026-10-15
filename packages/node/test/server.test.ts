@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { GamebeastError, GamebeastServer, SDK_VERSION } from "../src";
+import { GamebeastError, GamebeastServer, parseAttribution, SDK_VERSION } from "../src";
 import type { GamebeastServerOptions } from "../src";
 import { configurationResponse, evaluated, FakeBackend, silentLogger } from "@gamebeast/test-utils";
 
@@ -747,6 +747,60 @@ describe("GamebeastServer markers and lifecycle", () => {
     await server.flush();
     expect(backend.requestsTo("POST /sdk/v1/markers")).toHaveLength(0);
     expect(lines.some((line) => line.level === "error")).toBe(true);
+  });
+
+  it("forwards deeplink attribution from the browser in reserved marker fields", async () => {
+    const backend = new FakeBackend().on("POST /sdk/v1/markers", { body: {} });
+    const { server } = createServer(backend);
+    const deeplink = {
+      deeplinkData: { slug: "summer", interactionId: "3f6c1e2a-8b4d-4c7e-9a1f-5d2b7e0c4a96" },
+      utm: { source: "twitter", id: "gb_summer" },
+      referrer: "not sent",
+      capturedAt: 1,
+    };
+    server.markers.send("purchase", { amount: 5 }, { distinctId: "alice", deeplink });
+    await server.flush();
+
+    const [request] = backend.requestsTo("POST /sdk/v1/markers");
+    const [marker] = (request?.body as { markers: Array<Record<string, unknown>> }).markers;
+    expect(marker).toMatchObject({
+      eventName: "purchase",
+      distinctId: "alice",
+      properties: { amount: 5 },
+      deeplinkData: deeplink.deeplinkData,
+      utm: deeplink.utm,
+    });
+    expect(marker).not.toHaveProperty("referrer");
+  });
+
+  it("parses a server-rendered landing URL with parseAttribution", async () => {
+    const backend = new FakeBackend().on("POST /sdk/v1/markers", { body: {} });
+    const { server } = createServer(backend);
+    const deeplink = parseAttribution("https://example.com/?utm_id=gb_ssr&utm_source=ads");
+    server.markers.send("$deeplink_landing", {}, { distinctId: "bob", deeplink });
+    await server.flush();
+
+    const [request] = backend.requestsTo("POST /sdk/v1/markers");
+    const [marker] = (request?.body as { markers: Array<Record<string, unknown>> }).markers;
+    expect(marker?.deeplinkData).toMatchObject({ slug: "ssr" });
+    expect(marker?.utm).toEqual({ id: "gb_ssr", source: "ads" });
+  });
+
+  it("drops malformed attribution but still sends the marker", async () => {
+    const backend = new FakeBackend().on("POST /sdk/v1/markers", { body: {} });
+    const { server, lines } = createServer(backend);
+    server.markers.send(
+      "e",
+      {},
+      { deeplink: { deeplinkData: { slug: "x", interactionId: "not-a-uuid" } } }
+    );
+    await server.flush();
+
+    const [request] = backend.requestsTo("POST /sdk/v1/markers");
+    const [marker] = (request?.body as { markers: Array<Record<string, unknown>> }).markers;
+    expect(marker?.eventName).toBe("e");
+    expect(marker).not.toHaveProperty("deeplinkData");
+    expect(lines.some((line) => line.level === "warn")).toBe(true);
   });
 
   it("flushes a full batch immediately and the rest on the interval", async () => {
