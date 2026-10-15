@@ -15,6 +15,8 @@ export { SDK_VERSION } from "./version";
 export type {
   AssignmentSource,
   ConfigPath,
+  DeeplinkAttribution,
+  DeeplinkData,
   FetchLike,
   GamebeastLogger,
   JsonObject,
@@ -23,4 +25,5 @@ export type {
   Properties,
   PropertyValue,
   Unsubscribe,
+  UtmParameters,
 } from "@gamebeast/core";

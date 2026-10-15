@@ -1,4 +1,10 @@
-import type { ApiClient, Logger, MarkerPayload, MarkerProperties } from "@gamebeast/core";
+import type {
+  ApiClient,
+  Logger,
+  MarkerFields,
+  MarkerPayload,
+  MarkerProperties,
+} from "@gamebeast/core";
 import { buildMarker, MarkerQueue } from "@gamebeast/core";
 import type { SafeStorage } from "./storage";
 
@@ -38,8 +44,8 @@ export interface ClientMarkersDeps {
   logger: Logger;
   storage: SafeStorage;
   storageKey: string;
-  /** The user and session to attribute a new marker to. */
-  stamp: () => { distinctId: string; sessionId: string };
+  /** The user, session and attribution to record a new marker under. */
+  stamp: () => MarkerFields;
   /** Server-side rendering: accept and ignore markers. */
   inert: boolean;
 }

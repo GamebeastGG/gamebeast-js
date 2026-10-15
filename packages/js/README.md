@@ -96,6 +96,36 @@ buffered markers go out with `fetch` `keepalive` so they survive the unload. If 
 offline, they are saved to `localStorage` and sent on the next visit. Failed sends retry with
 exponential backoff.
 
+## Deeplink attribution
+
+When the SDK starts, it reads the page URL for UTM parameters. A
+[Gamebeast website deeplink](https://docs.gamebeast.gg/docs/deeplinks#deeplinks-to-websites)
+sends visitors to your URL tagged with your UTM values and `utm_id=gb_<id>`:
+
+- The first attribution in a session wins and is kept for the whole session (shared across tabs,
+  cleared when the session times out). Every marker in the session carries it, so the dashboard's
+  deeplink filters and breakdowns match your site's markers.
+- A Gamebeast deeplink also records one `$deeplink_landing` marker (`referrer`, `landingUrl`),
+  which is what the deeplink page counts as a landing.
+- Plain UTM traffic (no `gb_` id) is attributed too, without a landing marker.
+
+```ts
+gamebeast.attribution; // { deeplinkData?: { slug, interactionId }, utm?, referrer?, landingUrl?, capturedAt }
+
+// Single-page apps that create the SDK after the router has changed the URL:
+const gamebeast = new GamebeastClient({ apiKey, captureAttribution: false });
+gamebeast.captureAttribution(landingUrl);
+
+// Attribute server-side markers too: forward the attribution to your backend.
+await fetch("/api/checkout", {
+  method: "POST",
+  body: JSON.stringify({ attribution: gamebeast.attribution }),
+});
+```
+
+Pass `stripAttributionParams: true` to remove the `utm_*` parameters from the address bar after
+they're read (with `history.replaceState`).
+
 ## Server-side rendering
 
 Constructing a `GamebeastClient` during SSR (Next.js, Remix, Nuxt, ...) is safe. With no page
@@ -115,6 +145,8 @@ there is no user, so the instance stays inert: reads return their fallbacks, `re
 | `configRefreshIntervalSeconds` | `60`             | Background re-check interval. `0` disables it.                     |
 | `sessionTimeoutMinutes`        | `30`             | Inactivity before a new session. `0` never rolls over.             |
 | `storage`                      | `localStorage`   | A `KeyValueStorage`, or `null` to persist nothing.                 |
+| `captureAttribution`           | `true`           | Read deeplink/UTM attribution from the page URL on start.          |
+| `stripAttributionParams`       | `false`          | Remove `utm_*` from the address bar after reading them.            |
 | `projectId`                    | —                | For keys that can access several projects.                         |
 | `requestTimeoutMs`             | `10000`          | Per-request timeout.                                               |
 | `fetch`, `logger`, `debug`     | global / console | Transport and logging hooks.                                       |

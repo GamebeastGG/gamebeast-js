@@ -1,3 +1,4 @@
+import type { DeeplinkAttribution } from "@gamebeast/core";
 import type { SafeStorage } from "./storage";
 import { normalizeDistinctId, uuidv4 } from "@gamebeast/core";
 
@@ -27,12 +28,17 @@ export function anonymousIdentity(storage: SafeStorage): Identity {
 interface StoredSession {
   id: string;
   lastActivityAt: number;
+  /** How this session was acquired (first touch). Cleared when the session rotates. */
+  attribution?: DeeplinkAttribution;
 }
 
 /**
  * Session ids group markers into visits. A session is shared by every tab of the origin and ends
  * after `timeoutMs` without activity, so a multi-page site reports one session per visit rather
  * than one per page load.
+ *
+ * The session also carries its first-touch attribution (the deeplink or UTM campaign it landed
+ * from). It is shared across tabs with the session and ends with it.
  */
 export class SessionTracker {
   private current: StoredSession;
@@ -48,15 +54,11 @@ export class SessionTracker {
   /** The active session id, rotating it first if the session has timed out. */
   touch(): string {
     const time = this.now();
-    // Another tab may have extended or rotated the shared session since we last looked.
-    const shared = this.storage.getJson<StoredSession>(SESSION_KEY);
-    if (isStoredSession(shared) && shared.lastActivityAt > this.current.lastActivityAt) {
-      this.current = shared;
-    }
-    if (this.timeoutMs > 0 && time - this.current.lastActivityAt >= this.timeoutMs) {
+    this.refresh();
+    if (this.isExpired(time)) {
       this.current = this.start();
     } else {
-      this.current = { id: this.current.id, lastActivityAt: time };
+      this.current = { ...this.current, lastActivityAt: time };
       this.storage.setJson(SESSION_KEY, this.current);
     }
     return this.current.id;
@@ -64,6 +66,41 @@ export class SessionTracker {
 
   get id(): string {
     return this.current.id;
+  }
+
+  /** The session's first-touch attribution, if it has one. */
+  get attribution(): DeeplinkAttribution | undefined {
+    this.refresh();
+    if (this.isExpired(this.now())) return undefined;
+    return this.current.attribution;
+  }
+
+  /**
+   * Record how the session was acquired, unless it already has attribution (first touch wins: a
+   * second deeplink in the same session is ignored). Starts a new session first if this one has
+   * timed out. Returns true when `attribution` was saved.
+   */
+  setAttributionIfAbsent(attribution: DeeplinkAttribution): boolean {
+    this.touch();
+    if (this.current.attribution) return false;
+    this.current = { ...this.current, attribution };
+    this.storage.setJson(SESSION_KEY, this.current);
+    return true;
+  }
+
+  /** Adopt what another tab wrote to the shared session since we last looked. */
+  private refresh(): void {
+    const shared = this.storage.getJson<StoredSession>(SESSION_KEY);
+    if (!isStoredSession(shared)) return;
+    if (shared.lastActivityAt > this.current.lastActivityAt) {
+      this.current = shared;
+    } else if (shared.id === this.current.id && shared.attribution && !this.current.attribution) {
+      this.current = { ...this.current, attribution: shared.attribution };
+    }
+  }
+
+  private isExpired(time: number): boolean {
+    return this.timeoutMs > 0 && time - this.current.lastActivityAt >= this.timeoutMs;
   }
 
   private resume(): StoredSession | undefined {
@@ -82,11 +119,13 @@ export class SessionTracker {
 }
 
 function isStoredSession(value: unknown): value is StoredSession {
+  if (typeof value !== "object" || value === null) return false;
+  const session = value as StoredSession;
   return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as StoredSession).id === "string" &&
-    (value as StoredSession).id.length > 0 &&
-    typeof (value as StoredSession).lastActivityAt === "number"
+    typeof session.id === "string" &&
+    session.id.length > 0 &&
+    typeof session.lastActivityAt === "number" &&
+    (session.attribution === undefined ||
+      (typeof session.attribution === "object" && session.attribution !== null))
   );
 }

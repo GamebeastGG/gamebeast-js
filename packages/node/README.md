@@ -113,6 +113,31 @@ Batched 100 per request or every 5 seconds (configurable via `markers`). Transie
 with backoff. During an outage the buffer is capped at 10,000 markers, and the oldest are dropped
 first.
 
+### Deeplink attribution
+
+To attribute a server-side marker to the deeplink or UTM campaign a user arrived from, pass
+`deeplink`: the `attribution` your `@gamebeast/js` page forwarded, or the result of
+`parseAttribution` for a page rendered on the server.
+
+```ts
+import { parseAttribution } from "@gamebeast/node";
+
+gamebeast.markers.send(
+  "purchase_completed",
+  { sku },
+  { distinctId: user.id, deeplink: req.body.attribution }
+);
+
+// Server-rendered landing, no browser SDK on the page:
+const deeplink = parseAttribution(`https://example.com${req.url}`, req.headers.referer);
+if (deeplink?.deeplinkData) {
+  gamebeast.markers.send("$deeplink_landing", {}, { distinctId: user.id, deeplink });
+}
+```
+
+Malformed attribution is dropped with a warning and the marker is still sent. The backend ignores
+deeplinks that belong to another project.
+
 ## Options
 
 | Option                     | Default            | Description                                                              |

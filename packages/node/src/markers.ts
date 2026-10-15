@@ -1,5 +1,17 @@
-import type { ApiClient, Logger, MarkerFields, MarkerProperties } from "@gamebeast/core";
-import { buildMarker, MarkerQueue, normalizeDistinctId, positiveNumber } from "@gamebeast/core";
+import type {
+  ApiClient,
+  DeeplinkAttribution,
+  Logger,
+  MarkerFields,
+  MarkerProperties,
+} from "@gamebeast/core";
+import {
+  buildMarker,
+  MarkerQueue,
+  normalizeDistinctId,
+  positiveNumber,
+  sanitizeAttribution,
+} from "@gamebeast/core";
 
 export interface MarkerQueueSettings {
   /** Markers per request. Default 100. */
@@ -10,11 +22,18 @@ export interface MarkerQueueSettings {
   maxBufferedMarkers?: number;
 }
 
-export interface ServerMarkerOptions extends MarkerFields {
+export interface ServerMarkerOptions extends Omit<MarkerFields, "deeplinkData" | "utm"> {
   /**
    * The user the marker is about. Omit for a server-level marker (one not tied to a user).
    */
   distinctId?: string;
+  /**
+   * The deeplink and UTM attribution of the user's session, e.g. `client.attribution` from
+   * `@gamebeast/js` forwarded in your request, or `parseAttribution(landingUrl)` for a
+   * server-rendered landing. Malformed values are dropped (the marker is still sent), and the
+   * backend ignores deeplinks that belong to another project.
+   */
+  deeplink?: Pick<DeeplinkAttribution, "deeplinkData" | "utm">;
 }
 
 export interface ServerMarkers {
@@ -63,6 +82,17 @@ export class ServerMarkersService implements ServerMarkers {
     }
     if (options.sessionId !== undefined) fields.sessionId = String(options.sessionId);
     if (options.timestamp !== undefined) fields.timestamp = options.timestamp;
+    if (options.deeplink !== undefined) {
+      const attribution = sanitizeAttribution(options.deeplink);
+      if (attribution) {
+        fields.deeplinkData = attribution.deeplinkData;
+        fields.utm = attribution.utm;
+      } else {
+        this.logger.warn(
+          `Marker '${String(eventName)}' has invalid deeplink attribution; sending it without.`
+        );
+      }
+    }
 
     const marker = buildMarker(eventName, properties, fields, this.logger);
     if (marker) this.queue.enqueue(marker);

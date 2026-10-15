@@ -7,6 +7,7 @@
  * `@gamebeast/node` instead; this package's exports may change in any release.
  */
 export * from "./api";
+export * from "./attribution";
 export * from "./configStore";
 export * from "./context";
 export * from "./environment";

@@ -17,11 +17,14 @@ export type { ServerCohorts } from "./cohorts";
 export type { ServerMarkers, ServerMarkerOptions, MarkerQueueSettings } from "./markers";
 export { GamebeastError } from "./errors";
 export { SDK_VERSION } from "./version";
+export { parseAttribution } from "@gamebeast/core";
 
 export type {
   AssignmentEntry,
   AssignmentSource,
   ConfigPath,
+  DeeplinkAttribution,
+  DeeplinkData,
   ExperimentAssignmentMetadata,
   FetchLike,
   GamebeastLogger,
@@ -34,4 +37,5 @@ export type {
   SdkExperimentGroup,
   UnitType,
   Unsubscribe,
+  UtmParameters,
 } from "@gamebeast/core";
