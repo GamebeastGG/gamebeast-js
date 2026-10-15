@@ -1,3 +1,9 @@
+# Versions and publishes @gamebeast/core, @gamebeast/js and @gamebeast/node with Changesets.
+#
+# Auth is npm trusted publishing (OIDC): no npm token. Each package's trusted publisher on
+# npmjs.com must name this repo, this file (release.yml) and the `npm-publish` environment, with the
+# `publish` permission. Renaming any of them breaks publishing. Setup, adding a package and
+# troubleshooting: docs/RELEASING.md.
 name: Release
 
 on:
