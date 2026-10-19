@@ -6,7 +6,7 @@
 export { GamebeastClient } from "./client";
 export type { GamebeastClientOptions } from "./client";
 export type { ClientConfigs } from "./configs";
-export type { ClientMarkers } from "./markers";
+export type { ClientMarkers, ClientMarkerOptions } from "./markers";
 export type { ClientExperiments, ExperimentAssignment } from "./experiments";
 export type { ClientCohorts } from "./cohorts";
 export type { KeyValueStorage } from "./storage";

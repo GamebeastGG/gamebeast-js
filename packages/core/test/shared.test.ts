@@ -151,6 +151,15 @@ describe("buildMarker", () => {
     expect(buildMarker("e", cyclic, {}, logger())).toBeUndefined();
     expect(buildMarker("e", {}, { timestamp: Number.NaN }, logger())).toBeUndefined();
   });
+
+  it("keeps a valid serverId and drops a malformed one without dropping the marker", () => {
+    expect(buildMarker("e", {}, { serverId: "org-7" }, logger())?.serverId).toBe("org-7");
+    for (const serverId of ["", "x".repeat(129), 7 as unknown as string]) {
+      const marker = buildMarker("e", {}, { serverId }, logger());
+      expect(marker?.eventName).toBe("e");
+      expect(marker).not.toHaveProperty("serverId");
+    }
+  });
 });
 
 describe("uuidv4", () => {

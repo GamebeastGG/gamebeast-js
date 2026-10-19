@@ -293,6 +293,19 @@ describe("GamebeastClient markers", () => {
     expect(markers[1]).toMatchObject({ eventName: "item_bought", properties: {} });
   });
 
+  it("attributes a marker to a server unit when asked", async () => {
+    const backend = new FakeBackend().on("POST /sdk/v1/markers", { body: {} });
+    const { client } = createClient(backend, { distinctId: "alice" });
+    client.markers.send("seat_added", {}, { serverId: "org-7" });
+    client.markers.send("e");
+    await client.flush();
+
+    const [request] = backend.requestsTo("POST /sdk/v1/markers");
+    const markers = (request?.body as { markers: Array<Record<string, unknown>> }).markers;
+    expect(markers[0]).toMatchObject({ distinctId: "alice", serverId: "org-7" });
+    expect(markers[1]).not.toHaveProperty("serverId");
+  });
+
   it("maps development to isstudio=true", async () => {
     const backend = new FakeBackend().on("POST /sdk/v1/markers", { body: {} });
     const { client } = createClient(backend, { environment: "studio" });

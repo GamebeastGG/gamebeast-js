@@ -740,6 +740,20 @@ describe("GamebeastServer markers and lifecycle", () => {
     expect(markers[0]?.markerId).not.toBe(markers[1]?.markerId);
   });
 
+  it("lets a marker name its own server unit", async () => {
+    const backend = new FakeBackend().on("POST /sdk/v1/markers", { body: {} });
+    const { server } = createServer(backend);
+    server.markers.send("seat_added", {}, { distinctId: "alice", serverId: "org-7" });
+    server.markers.send("plan_changed", {}, { serverId: "org-7" });
+    server.markers.send("server_tick");
+    await server.flush();
+
+    const [request] = backend.requestsTo("POST /sdk/v1/markers");
+    expect(request?.headers).toMatchObject({ serverid: "server-1" });
+    const markers = (request?.body as { markers: Array<Record<string, unknown>> }).markers;
+    expect(markers.map((marker) => marker.serverId)).toEqual(["org-7", "org-7", undefined]);
+  });
+
   it("drops markers with an invalid distinctId", async () => {
     const backend = new FakeBackend().on("POST /sdk/v1/markers", { body: {} });
     const { server, lines } = createServer(backend);
