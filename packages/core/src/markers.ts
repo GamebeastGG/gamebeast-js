@@ -1,5 +1,7 @@
 import type { DeeplinkData, UtmParameters } from "./attribution";
 import type { Logger } from "./logger";
+import { SDK_SERVER_ID_MAX_LENGTH } from "@gamebeast/sdk-contract/core";
+
 import { describeError } from "./logger";
 import { uuidv4 } from "./uuid";
 import type { MarkerPayload } from "./wire";
@@ -16,6 +18,8 @@ export interface MarkerFields {
   deeplinkData?: DeeplinkData | undefined;
   /** UTM attribution. Reserved: sent beside `properties`, never inside them. */
   utm?: UtmParameters | undefined;
+  /** The server unit the marker belongs to, overriding the instance id the SDK reports. */
+  serverId?: string | undefined;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -85,5 +89,18 @@ export function buildMarker(
   if (fields.deeplinkData !== undefined) marker.deeplinkData = { ...fields.deeplinkData };
   if (fields.utm !== undefined && Object.keys(fields.utm).length > 0)
     marker.utm = { ...fields.utm };
+  if (fields.serverId !== undefined) {
+    if (
+      typeof fields.serverId === "string" &&
+      fields.serverId !== "" &&
+      fields.serverId.length <= SDK_SERVER_ID_MAX_LENGTH
+    ) {
+      marker.serverId = fields.serverId;
+    } else {
+      logger.warn(
+        `Marker '${eventName}' has an invalid serverId (1-${SDK_SERVER_ID_MAX_LENGTH} characters); sending it without.`
+      );
+    }
+  }
   return marker;
 }
