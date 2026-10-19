@@ -28,6 +28,12 @@ export interface ServerMarkerOptions extends Omit<MarkerFields, "deeplinkData" |
    */
   distinctId?: string;
   /**
+   * The server unit the marker belongs to, for server-unit experiments. Defaults to this
+   * process's `serverId`. Set it when one process reports for many units, e.g. an
+   * organization id in a multi-tenant backend.
+   */
+  serverId?: string;
+  /**
    * The deeplink and UTM attribution of the user's session, e.g. `client.attribution` from
    * `@gamebeast/js` forwarded in your request, or `parseAttribution(landingUrl)` for a
    * server-rendered landing. Malformed values are dropped (the marker is still sent), and the
@@ -82,6 +88,7 @@ export class ServerMarkersService implements ServerMarkers {
     }
     if (options.sessionId !== undefined) fields.sessionId = String(options.sessionId);
     if (options.timestamp !== undefined) fields.timestamp = options.timestamp;
+    if (options.serverId !== undefined) fields.serverId = options.serverId;
     if (options.deeplink !== undefined) {
       const attribution = sanitizeAttribution(options.deeplink);
       if (attribution) {
