@@ -1,6 +1,6 @@
 {
   "name": "@gamebeast/node",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Gamebeast SDK for Node.js and other server runtimes: remote configuration, per-user evaluation, experiments, cohorts and analytics markers.",
   "keywords": [
     "gamebeast",
@@ -53,7 +53,7 @@
     "check:package": "publint && attw --pack . --profile node16"
   },
   "dependencies": {
-    "@gamebeast/core": "1.0.0",
+    "@gamebeast/core": "1.1.0",
     "@gamebeast/sdk-contract": "^1.2.0"
   },
   "publishConfig": {
