@@ -12,6 +12,14 @@ const MAX_BATCH_SIZE = 10;
 const FLUSH_INTERVAL_MS = 10_000;
 const MAX_BUFFERED_MARKERS = 500;
 
+export interface ClientMarkerOptions {
+  /**
+   * The server unit the marker belongs to, for server-unit experiments, e.g. the organization
+   * the user is acting in. Omitted by default.
+   */
+  serverId?: string;
+}
+
 /** Markers sent from the browser. */
 export interface ClientMarkers {
   /**
@@ -20,8 +28,9 @@ export interface ClientMarkers {
    *
    * @param eventName Event name, e.g. `"level_completed"`.
    * @param properties Optional JSON-serializable object, e.g. `{ level: 3 }`.
+   * @param options The server unit to attribute the marker to.
    */
-  send(eventName: string, properties?: MarkerProperties): void;
+  send(eventName: string, properties?: MarkerProperties, options?: ClientMarkerOptions): void;
 
   /** Send everything buffered now. Resolves once the requests have settled. */
   flush(): Promise<void>;
@@ -72,14 +81,15 @@ export class ClientMarkersService implements ClientMarkers {
     });
   }
 
-  send(eventName: string, properties?: MarkerProperties): void {
+  send(eventName: string, properties?: MarkerProperties, options: ClientMarkerOptions = {}): void {
     if (this.deps.inert) {
       this.deps.logger.debug(
         `Marker '${eventName}' ignored: markers are only sent from the browser.`
       );
       return;
     }
-    const marker = buildMarker(eventName, properties, this.deps.stamp(), this.deps.logger);
+    const fields = { ...this.deps.stamp(), serverId: options.serverId };
+    const marker = buildMarker(eventName, properties, fields, this.deps.logger);
     if (marker) this.queue.enqueue(marker);
   }
 
